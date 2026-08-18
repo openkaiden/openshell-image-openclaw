@@ -15,43 +15,28 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# OpenClaw requires Node.js 22.22.3+, 24.15+, or 25.9+. The pinned OpenShell
-# base currently carries Node.js 22.22.1, so install OpenClaw in a compatible
-# Node.js stage and copy that runtime into the sandbox image.
-FROM registry.access.redhat.com/ubi10/nodejs-24:latest AS openclaw
-
-ARG NPM_VERSION=11.19.0
-ARG OPENCLAW_VERSION=2026.7.1-2
-
-USER root
-
-RUN npm install --global --prefix /usr/local "npm@${NPM_VERSION}" && \
-    npm install --global --prefix /usr/local "openclaw@${OPENCLAW_VERSION}" --allow-scripts=openclaw && \
-    openclaw --version && \
-    mkdir -p /opt/node/bin /opt/node/lib && \
-    cp /usr/bin/node-24 /opt/node/bin/node && \
-    cp --dereference \
-        /lib64/libnode.so.137 \
-        /lib64/libz.so.1 \
-        /lib64/libuv.so.1 \
-        /lib64/libbrotli*.so.1 \
-        /lib64/libcares.so.2 \
-        /lib64/libsqlite3.so.0 \
-        /lib64/libcrypto.so.3 \
-        /lib64/libssl.so.3 \
-        /lib64/libstdc++.so.6 \
-        /lib64/libgcc_s.so.1 \
-        /opt/node/lib/
-
 FROM ghcr.io/nvidia/openshell-community/sandboxes/base@sha256:aeef1c63f00e2913ea002ccb3aaf925f338b5c5d70e63576f0d95c16a138044e
 
 USER root
 
-COPY --from=openclaw /opt/node/ /opt/node/
-COPY --from=openclaw /usr/local/ /usr/local/
+ARG NODE_VERSION=22.22.3
+ARG NPM_VERSION=11.19.0
+ARG OPENCLAW_VERSION=2026.7.1-2
 
-RUN printf '#!/bin/sh\nexec env LD_LIBRARY_PATH=/opt/node/lib /opt/node/bin/node "$@"\n' > /usr/local/bin/node && \
-    chmod +x /usr/local/bin/node
+RUN case "$(uname -m)" in \
+        x86_64) node_arch=x64; node_sha=2e5d13569282d016861fae7c8f935e741693c269101a5bebcf761a5376d1f99f ;; \
+        aarch64) node_arch=arm64; node_sha=1c4a9933a5e45bc88f54f70b5f91232c127ec49f1a5989d23fb85824c7adf9b7 ;; \
+        *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
+    esac && \
+    node_archive="node-v${NODE_VERSION}-linux-${node_arch}.tar.xz" && \
+    curl --fail --location --silent --show-error \
+        "https://nodejs.org/dist/v${NODE_VERSION}/${node_archive}" \
+        --output "/tmp/${node_archive}" && \
+    echo "${node_sha}  /tmp/${node_archive}" | sha256sum --check --strict && \
+    tar --extract --xz --file "/tmp/${node_archive}" --directory /usr/local --strip-components=1 && \
+    rm "/tmp/${node_archive}" && \
+    npm install --global "npm@${NPM_VERSION}" && \
+    npm install --global "openclaw@${OPENCLAW_VERSION}" --allow-scripts=openclaw
 
 RUN node --version && openclaw --version
 
