@@ -18,9 +18,7 @@
 # OpenClaw requires Node.js 22.22.3+, 24.15+, or 25.9+. The pinned OpenShell
 # base currently carries Node.js 22.22.1, so install OpenClaw in a compatible
 # Node.js stage and copy that runtime into the sandbox image.
-ARG BASE_IMAGE=ghcr.io/nvidia/openshell-community/sandboxes/base@sha256:aeef1c63f00e2913ea002ccb3aaf925f338b5c5d70e63576f0d95c16a138044e
-ARG NODE_IMAGE=node:24.15.0-bookworm-slim
-FROM ${NODE_IMAGE} AS openclaw
+FROM node:24.15.0-bookworm-slim AS openclaw
 
 ARG NPM_VERSION=11.19.0
 ARG OPENCLAW_VERSION=2026.7.1-2
@@ -29,7 +27,7 @@ RUN npm install --global "npm@${NPM_VERSION}" && \
     npm install --global "openclaw@${OPENCLAW_VERSION}" --allow-scripts=openclaw && \
     openclaw --version
 
-FROM ${BASE_IMAGE}
+FROM ghcr.io/nvidia/openshell-community/sandboxes/base@sha256:aeef1c63f00e2913ea002ccb3aaf925f338b5c5d70e63576f0d95c16a138044e
 
 USER root
 
