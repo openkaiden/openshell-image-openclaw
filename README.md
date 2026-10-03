@@ -1,6 +1,6 @@
 # OpenShell image for OpenClaw
 
-An OCI sandbox image containing [OpenClaw](https://github.com/openclaw/openclaw), built on the OpenShell community base image.
+An OCI sandbox image containing [OpenClaw](https://github.com/openclaw/openclaw), built from the [openshell-image-base-builder](https://github.com/openkaiden/openshell-image-base-builder) image.
 
 ## Build
 
